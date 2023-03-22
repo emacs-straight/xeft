@@ -219,12 +219,16 @@ point at the beginning of body text (ie, end of title)."
 
 Xeft doesn’t follow symlinks and ignores inaccessible
 directories. Customize ‘xeft-directory-filter’ to exclude
-subdirectories.
+subdirectories. Set this variable to ‘follow-symlinks’ to follow
+symlinks, note that this might lead to infinite recursion.
 
 Changing this variable along doesn’t remove already-indexed files
 from the database, you need to delete the database on disk and
 let xeft recreate it."
-  :type 'boolean)
+  :type '(choice (const :tag "No" nil)
+                 (const :tag "Yes" t)
+                 (const :tag "Yes, and follow symlinks"
+                        follow-symlinks )))
 
 (defcustom xeft-file-list-function #'xeft--file-list
   "A function that returns files that xeft should search from.
@@ -697,6 +701,15 @@ The score is the number of search phrases that appears in TITLE."
   (interactive)
   (xeft-refresh t))
 
+(defun xeft--file-name-extension (path)
+  "Return the extension part of PATH.
+This differs from ‘file-name-extension’ in that it doesn’t remove
+trailing \"version strings\"."
+  (let ((filename (file-name-nondirectory path)))
+    (when (string-match (rx (not ".") "." (group (* (not "."))) eos)
+                        filename)
+      (match-string 1 filename))))
+
 (defun xeft-default-file-filter (file)
   "Return nil if FILE should be ignored.
 
@@ -706,7 +719,7 @@ directories, dot files, and files matched by
   (and (file-regular-p file)
        (not (string-prefix-p
              "." (file-name-base file)))
-       (not (member (file-name-extension file)
+       (not (member (xeft--file-name-extension file)
                     xeft-ignore-extension))))
 
 (defun xeft-default-directory-filter (dir)
@@ -723,7 +736,8 @@ files and directories and check for ‘xeft-ignore-extension’."
    xeft-file-filter
    (if xeft-recursive
        (directory-files-recursively
-        xeft-directory "" nil xeft-directory-filter)
+        xeft-directory "" nil xeft-directory-filter
+        (eq xeft-recursive 'follow-symlinks))
      (directory-files
       xeft-directory t nil t))))
 
