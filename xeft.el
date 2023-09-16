@@ -500,7 +500,10 @@ If SELECT is non-nil, select the buffer after displaying it."
     (if (and (window-live-p xeft--preview-window)
              (not (eq xeft--preview-window (selected-window))))
         (with-selected-window xeft--preview-window
-          (switch-to-buffer buffer))
+          (switch-to-buffer buffer)
+          (when keyword-list
+            (let ((case-fold-search t))
+              (search-forward (car keyword-list) nil t))))
       (setq xeft--preview-window
             (display-buffer
              buffer '((display-buffer-use-some-window
@@ -594,7 +597,7 @@ title."
   (let ((bol (point)) title)
     (end-of-line)
     (setq title (buffer-substring-no-properties bol (point)))
-    (if (eq title "")
+    (if (equal title "")
         (file-name-base file)
       title)))
 
